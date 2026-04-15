@@ -1,0 +1,115 @@
+name: clickhouse-cluster
+
+x-keeper-common: &keeper-common
+  image: clickhouse/clickhouse-keeper:latest
+  restart: unless-stopped
+  networks: [clickhouse-net]
+
+x-clickhouse-common: &clickhouse-common
+  image: clickhouse/clickhouse-server:latest
+  restart: unless-stopped
+  ulimits:
+    nofile:
+      soft: 262144
+      hard: 262144
+  depends_on:
+    - keeper-01
+    - keeper-02
+    - keeper-03
+  networks: [clickhouse-net]
+
+services:
+  keeper-01:
+    <<: *keeper-common
+    container_name: keeper-01
+    hostname: keeper-01
+    volumes:
+      - ./config/keeper/keeper-01.xml:/etc/clickhouse-keeper/keeper_config.xml:ro
+      - keeper-01-data:/var/lib/clickhouse-keeper
+
+  keeper-02:
+    <<: *keeper-common
+    container_name: keeper-02
+    hostname: keeper-02
+    volumes:
+      - ./config/keeper/keeper-02.xml:/etc/clickhouse-keeper/keeper_config.xml:ro
+      - keeper-02-data:/var/lib/clickhouse-keeper
+
+  keeper-03:
+    <<: *keeper-common
+    container_name: keeper-03
+    hostname: keeper-03
+    volumes:
+      - ./config/keeper/keeper-03.xml:/etc/clickhouse-keeper/keeper_config.xml:ro
+      - keeper-03-data:/var/lib/clickhouse-keeper
+
+  # Shard 1, replica 1
+  ch-01:
+    <<: *clickhouse-common
+    container_name: ch-01
+    hostname: ch-01
+    volumes:
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/clickhouse/macros-ch-01.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ch-01-data:/var/lib/clickhouse
+
+  # Shard 1, replica 2
+  ch-02:
+    <<: *clickhouse-common
+    container_name: ch-02
+    hostname: ch-02
+    volumes:
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/clickhouse/macros-ch-02.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ch-02-data:/var/lib/clickhouse
+
+  # Shard 2, replica 1
+  ch-03:
+    <<: *clickhouse-common
+    container_name: ch-03
+    hostname: ch-03
+    volumes:
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/clickhouse/macros-ch-03.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ch-03-data:/var/lib/clickhouse
+
+  # Shard 2, replica 2
+  ch-04:
+    <<: *clickhouse-common
+    container_name: ch-04
+    hostname: ch-04
+    volumes:
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./config/clickhouse/macros-ch-04.xml:/etc/clickhouse-server/config.d/macros.xml:ro
+      - ch-04-data:/var/lib/clickhouse
+
+  haproxy:
+    image: haproxy:2.9
+    container_name: ch-haproxy
+    hostname: ch-haproxy
+    restart: unless-stopped
+    depends_on:
+      - ch-01
+      - ch-02
+      - ch-03
+      - ch-04
+    volumes:
+      - ./config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "8404:8404"
+    networks: [clickhouse-net]
+
+networks:
+  clickhouse-net:
+    driver: bridge
+
+volumes:
+  keeper-01-data:
+  keeper-02-data:
+  keeper-03-data:
+  ch-01-data:
+  ch-02-data:
+  ch-03-data:
+  ch-04-data:

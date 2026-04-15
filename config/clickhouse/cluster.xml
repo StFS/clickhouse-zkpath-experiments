@@ -1,0 +1,48 @@
+<clickhouse>
+    <listen_host>0.0.0.0</listen_host>
+
+    <default_replica_path>/clickhouse/tables/{uuid}/{shard}</default_replica_path>
+
+    <remote_servers replace="true">
+        <cluster_2S_2R>
+            <secret>cluster_shared_secret_change_me</secret>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>ch-01</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>ch-02</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>ch-03</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>ch-04</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster_2S_2R>
+    </remote_servers>
+
+    <zookeeper>
+        <node>
+            <host>keeper-01</host>
+            <port>9181</port>
+        </node>
+        <node>
+            <host>keeper-02</host>
+            <port>9181</port>
+        </node>
+        <node>
+            <host>keeper-03</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+</clickhouse>
